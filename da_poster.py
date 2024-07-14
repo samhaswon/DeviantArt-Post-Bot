@@ -1,12 +1,13 @@
-import json
 import re
+import time
+
 import requests
 from typing import List
 
 
 class Poster:
-    stash_upload_url = "https://www.deviantart.com/api/v1/oauth2/stash/submit"
-    stash_publish_url = "https://www.deviantart.com/api/v1/oauth2/stash/publish"
+    STASH_UPLOAD_URL = "https://www.deviantart.com/api/v1/oauth2/stash/submit"
+    STASH_PUBLISH_URL = "https://www.deviantart.com/api/v1/oauth2/stash/publish"
 
     def upload_and_submit(self,
                           file_path: str,
@@ -16,8 +17,9 @@ class Poster:
                           tags: List[str],
                           folders: List[str],
                           is_mature: bool = True,
-                          debug: bool = False
-                          ):
+                          debug: bool = False,
+                          back_off_time: int = 1,
+                          ) -> None:
         """
         Upload and submit an image to Deviantart.
         :param file_path: Path to the file to upload.
@@ -27,8 +29,9 @@ class Poster:
         :param tags: The tags of the deviation.
         :param folders: The folders to post the deviation in to.
         :param is_mature: If the deviation should be tagged as mature.
-        :param debug:
-        :return:
+        :param debug: Print debugging information.
+        :param back_off_time: Time to wait for the rate limit to expire.
+        :return: None
         """
         # Truncate title
         title = title[:50]
@@ -57,13 +60,46 @@ class Poster:
             else:
                 raise RuntimeError(f"Invalid file type for file at {file_path}")
 
-        result = requests.post(self.stash_upload_url, data=data, files=files)
+        result = requests.post(self.STASH_UPLOAD_URL, data=data, files=files)
+        upload_status = result.status_code
         if debug:
             print(f"Raw {result.text=}")
         result = result.json()
         if result.get("status", "failure") != "success":
-            raise RuntimeError(f"Unable to upload image!\n"
-                               f"{result=}")
+            if upload_status == 429:
+                print(f"Rate limit encountered. Backing off for {back_off_time} seconds.")
+                time.sleep(back_off_time)
+                self.upload_and_submit(
+                    file_path,
+                    token,
+                    title,
+                    artist_comments,
+                    tags,
+                    folders,
+                    is_mature,
+                    debug,
+                    back_off_time ** 2
+                )
+            elif upload_status in {500, 503}:
+                print(f"Deviantart had a server error {upload_status}. Waiting and trying again", end="")
+                for i in range(3):
+                    time.sleep(20)
+                    print(".", end="")
+                print()
+                self.upload_and_submit(
+                    file_path,
+                    token,
+                    title,
+                    artist_comments,
+                    tags,
+                    folders,
+                    is_mature,
+                    debug,
+                    back_off_time ** 2
+                )
+            else:
+                raise RuntimeError(f"Unable to upload image!\n"
+                                   f"{result=}")
         if debug:
             print(f"JSON parsed {result=}")
 
@@ -91,10 +127,53 @@ class Poster:
             params["mature_level"] = "strict"
             params["mature_classification"] = ["nudity", "sexual"]
 
-        post_result = requests.post(self.stash_publish_url, params=params)
+        post_result = requests.post(self.STASH_PUBLISH_URL, params=params)
         if post_result.status_code > 399:
-            raise RuntimeError(f"Failed to post image with error {post_result.status_code} {post_result.reason}\n"
-                               f"{post_result.text}")
+            if post_result.status_code == 400:
+                print("Deviantart broke most likely. Reattempting upload. You may also want to check your stash.")
+                print(f"Response:\n{post_result.text=}")
+                time.sleep(back_off_time)
+                self.upload_and_submit(
+                    file_path,
+                    token,
+                    title,
+                    artist_comments,
+                    tags,
+                    folders,
+                    is_mature,
+                    debug,
+                    back_off_time ** 2
+                )
+            elif upload_status == 429:
+                retry_count = 1
+                while post_result.status_code > 399 and retry_count < 20:
+                    print(f"Rate limit encountered. Backing off for {back_off_time} seconds.")
+                    time.sleep(back_off_time)
+                    post_result = requests.post(self.STASH_PUBLISH_URL, params=params)
+                    back_off_time = back_off_time ** 2
+                    if post_result.status_code > 399:
+                        print(f"Retry count: {retry_count}")
+                    retry_count += 1
+                if post_result.status_code > 399:
+                    print(f"Unable to post deviation {title}")
+                    return
+            elif post_result.status_code in {500, 503}:
+                print(f"Deviantart had a server error {post_result.status_code}. Waiting and trying again")
+                retry_count = 1
+                while post_result.status_code > 399 and retry_count < 20:
+                    print(f"Backing off for {back_off_time} seconds")
+                    time.sleep(back_off_time)
+                    post_result = requests.post(self.STASH_PUBLISH_URL, params=params)
+                    back_off_time = back_off_time ** 2
+                    if post_result.status_code > 399:
+                        print(f"Retry count: {retry_count}")
+                    retry_count += 1
+                if post_result.status_code > 399:
+                    print(f"Unable to post deviation {title}")
+                    return
+            else:
+                raise RuntimeError(f"Failed to post image with error {post_result.status_code} {post_result.reason}\n"
+                                   f"{post_result.text}")
         if debug:
             print(f"{post_result.text=}")
         post_result = post_result.json()
