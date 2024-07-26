@@ -18,7 +18,7 @@ class Poster:
                           folders: List[str],
                           is_mature: bool = True,
                           debug: bool = False,
-                          back_off_time: int = 1,
+                          back_off_time: int = 2,
                           ) -> None:
         """
         Upload and submit an image to Deviantart.
