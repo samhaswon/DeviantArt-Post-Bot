@@ -1,0 +1,48 @@
+{
+    "client_id": 37511,
+    "client_secret": "60a0defde65e2eec9a094a3d738843ea",
+    "debug": "False",
+    "debug_no_post": "False",
+    "post_config": {
+        "cake": {
+            "type": "daily",
+            "directory": "./AI Generated/cake",
+            "images_per_day": 4,
+            "time": "19:30",
+            "galleries": [
+                "2FC79C78-693E-5BE4-D1EB-53D075289D90",
+                "A57BF9F7-3F32-3E91-7241-0F5B7E586CCC"
+            ],
+            "tags": [
+                "food",
+                "kitchen",
+                "aigeneratedart"
+            ]
+        },
+        "mermaids": {
+            "type": "rotation",
+            "last_posted": 1,
+            "directories": [
+                "path1",
+                "path2"
+            ],
+            "images_per_day": 4,
+            "time": "20:45",
+            "galleries": [
+                "2FC79C78-693E-5BE4-D1EB-53D075289D90",
+                "A57BF9F7-3F32-3E91-7241-0F5B7E586CCC"
+            ],
+            "tags": [
+                [
+                    "mermaid",
+                    "woman",
+                    "aigeneratedart"
+                ],
+                [
+                    "merman",
+                    "aigeneratedart"
+                ]
+            ]
+        }
+    }
+}
