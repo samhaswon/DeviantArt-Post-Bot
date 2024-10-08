@@ -1,0 +1,10 @@
+services:
+  da-poster:
+    image: samhaswon/da-poster:latest
+    container_name: da-poster
+    environment:
+      - TZ=America/New_York
+    restart: unless-stopped
+    volumes:
+      - ./da_config.json:/usr/src/app/da_config.json
+      - ./images:/usr/src/app/images

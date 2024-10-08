@@ -1,0 +1,10 @@
+da_config*.json
+.idea/*
+.*venv/
+.venv/
+venv/
+__pycache__/
+test_files/
+.venv/
+.git*
+example_config.json

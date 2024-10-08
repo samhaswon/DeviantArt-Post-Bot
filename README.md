@@ -16,6 +16,8 @@ To start the setup, clone the repo to your machine.
 
 ### Setting Up The Config
 
+If you want to set this up as your own application in DeviantArt (in case mine gets taken down), you should first follow the instructions in [info.md](./info.md)
+
 An example configuration is provided in [example_config.json](./example_config.json). 
 This should give you a general idea of how the file is laid out. 
 
@@ -119,9 +121,23 @@ After authenticating the application, `refresh_token` in the config will be your
 I could make a script for doing this, but this is niche and I do not intend on others using this. 
 Think of it as a reference for making your own niche script. 
 
-### Running It For Real Now
+### Running It For Real Now, Locally
 
 Now that the configuration is settled, you can finally run everything. 
 You may do this locally with the same commands from before in [Run The Application Locally](#run-the-application-locally).
 
-<!-- TODO: Docker or something? -->
+### Running It For Real Now, But In Docker
+
+```yml 
+services:
+  da-poster:
+    image: samhaswon/da-poster:latest
+    container_name: da-poster
+    environment:
+      - TZ=America/New_York
+    restart: unless-stopped
+    volumes:
+      - ${PWD}/da_config.json:/usr/src/app/da_config.json
+      - ./images:/usr/src/app/images
+```
+
