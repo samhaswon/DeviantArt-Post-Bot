@@ -2,10 +2,15 @@
 
 Post images, auto-magically!
 
-## Setup
+## Warning
 
 Fair warning: I do not intend on making this user-friendly. 
 It is likely that this will not work for you as this is a niche implementation for my personal use.
+If you want a certain feature or a current feature to work differently, fork it and make your own custom version. 
+This is **not** intended to be generalized or perfect for your use case. 
+There are already other projects out there that are more general, but they do not fit my use case.
+
+## Setup
 
 To start the setup, clone the repo to your machine.
 
