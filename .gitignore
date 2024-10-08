@@ -1,4 +1,4 @@
-*.json
+da_config*.json
 .idea/*
 .*venv/
 .venv/
