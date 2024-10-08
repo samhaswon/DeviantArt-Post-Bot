@@ -137,7 +137,7 @@ services:
       - TZ=America/New_York
     restart: unless-stopped
     volumes:
-      - ${PWD}/da_config.json:/usr/src/app/da_config.json
+      - ./da_config.json:/usr/src/app/da_config.json
       - ./images:/usr/src/app/images
 ```
 
