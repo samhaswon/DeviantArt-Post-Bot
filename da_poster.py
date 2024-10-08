@@ -64,8 +64,13 @@ class Poster:
         upload_status = result.status_code
         if debug:
             print(f"Raw {result.text=}")
-        result = result.json()
-        if result.get("status", "failure") != "success":
+        try:
+            result = result.json()
+        except requests.exceptions.JSONDecodeError or requests.exceptions.InvalidJSONError:
+            json_parsing_failed = True
+        else:
+            json_parsing_failed = False
+        if json_parsing_failed or result.get("status", "failure") != "success":
             if upload_status == 429:
                 print(f"Rate limit encountered. Backing off for {back_off_time} seconds.")
                 time.sleep(back_off_time)
@@ -123,6 +128,7 @@ class Poster:
             "itemid": result["itemid"]
         }
         if is_mature:
+            # Some safe defaults for mature content
             params["is_mature"] = True
             params["mature_level"] = "strict"
             params["mature_classification"] = ["nudity", "sexual"]
@@ -176,6 +182,23 @@ class Poster:
                                    f"{post_result.text}")
         if debug:
             print(f"{post_result.text=}")
-        post_result = post_result.json()
-        print(f"Successfully posted deviation {post_result['deviationid']} at {post_result['url']}")
+        try:
+            post_result = post_result.json()
+        except requests.exceptions.JSONDecodeError or requests.exceptions.InvalidJSONError:
+            print("Failed to post stashed deviation. "
+                  "Trying the whole thing again. "
+                  "You may also want to check your stash.")
+            self.upload_and_submit(
+                file_path,
+                token,
+                title,
+                artist_comments,
+                tags,
+                folders,
+                is_mature,
+                debug,
+                back_off_time ** 2
+            )
+        else:
+            print(f"Successfully posted deviation {post_result['deviationid']} at {post_result['url']}")
 
