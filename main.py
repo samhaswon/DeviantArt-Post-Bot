@@ -43,6 +43,14 @@ def update_token() -> None:
 
 
 def make_post(directory: str, num_images: int, galleries: List[str], tags: List[str]) -> None:
+    """
+    Make a post to DeviantArt using the relevant parameters.
+    :param directory: The directory to post from.
+    :param num_images: The number of images to post.
+    :param galleries: The galleries to post to.
+    :param tags: The tags to use for the image(s).
+    :return: None.
+    """
     if not os.path.isdir(directory):
         print(f"{directory} is not a directory!")
         return
@@ -89,6 +97,10 @@ def make_post(directory: str, num_images: int, galleries: List[str], tags: List[
 
 
 def post_scheduler() -> None:
+    """
+    Schedules posts to happen based on the configuration file.
+    :return: None.
+    """
     global da_config_dict, scheduler
     for post_type in da_config_dict["post_config"].keys():
         posting_type = da_config_dict["post_config"][post_type]["type"]
@@ -135,8 +147,11 @@ def post_scheduler() -> None:
         print(f"Scheduled posting of {post_type} for {target_time}")
 
 
-# Main loop to run the scheduler
-def run_scheduler():
+def run_scheduler() -> None:
+    """
+    The main post scheduling loop.
+    :return: None.
+    """
     while True:
         # Schedule the task
         post_scheduler()

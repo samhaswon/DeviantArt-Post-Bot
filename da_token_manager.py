@@ -31,6 +31,7 @@ class DATokenManager:
     def __init__(self, config: dict, debug: bool = False):
         """
         :param config: A dict with keys `client_id` and `client_secret` for the DA API
+        :param debug: Whether to print extra debugging information returned from the DeviantArt API.
         """
         # A.k.a. `access_token`
         self.__token: Union[str, None] = None
@@ -78,9 +79,19 @@ class DATokenManager:
 
     @property
     def extra_config(self) -> dict:
+        """
+        All other information that is a part of the configuration not needed for this.
+        :return: The other config information.
+        """
         return self.__extra_config
 
     def increment_rotation_config(self, post_type, value) -> None:
+        """
+        Updates the value of rotation configurations.
+        :param post_type: The post type to update.
+        :param value: The new rotation value.
+        :return: None.
+        """
         if post_type in self.__extra_config["post_config"] and \
                 self.__extra_config["post_config"][post_type]["type"] == "rotation":
             self.__extra_config["post_config"][post_type]["last_posted"] = value
@@ -181,12 +192,20 @@ class DATokenManager:
         return oauth_handler.code
 
     def save_config(self) -> None:
+        """
+        Saves the configuration (likely with an updated token) to the configuration file.
+        :return:
+        """
         with open("da_config.json", "w") as json_file:
             json_file.write(self.__str__())
         if self.__debug:
             print("Saved config")
 
     def __str__(self):
+        """
+        Prints the configuration of the token manager as a string.
+        :return:
+        """
         config_dict = {
             "client_id": int(self.__client_id),
             "client_secret": self.__client_secret,
