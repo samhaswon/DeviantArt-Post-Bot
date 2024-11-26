@@ -12,6 +12,11 @@ There are already other projects out there that are more general, but they do no
 If you can't tell by the fact that I'm using JSON for the configuration management,
 this is not intended to be user-friendly. 
 
+## Application permissions
+
+This application uses "basic" API scope to perform all of its functionality.
+There isn't good documentation I can find to just link to, but these permissions are basically for browsing, stash, and publishing
+
 ## Setup
 
 To start the setup, clone the repo to your machine.
@@ -122,6 +127,9 @@ After authenticating the application, `refresh_token` in the config will be your
 
 I could make a script for doing this, but this is niche and I do not intend on others using this. 
 Think of it as a reference for making your own niche script. 
+
+From here, the application will wait until the time set to post, refresh the token,
+upload the image(s), and publish them to deviantart. 
 
 ### Running It For Real Now, Locally
 
