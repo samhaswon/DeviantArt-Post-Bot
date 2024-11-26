@@ -17,7 +17,7 @@ RUN echo "***** Getting required packages *****" && \
 
 # Build dependencies
 RUN echo "***** Building dependencies *****" && \
-    pip wheel requests --wheel-dir=/svc/wheels
+    pip wheel -r /svc/requirements.txt --wheel-dir=/svc/wheels
 
 FROM python:3-alpine AS application
 
@@ -32,8 +32,7 @@ WORKDIR /usr/src/app
 COPY --chmod=0755 . .
 
 # Instal dependencies
-RUN pip install --no-index --no-cache-dir --find-links=/usr/src/app/wheels requests && \
-    pip install --no-cache-dir Pillow
+RUN pip install --no-index --no-cache-dir --find-links=/usr/src/app/wheels requests Pillow
 
 VOLUME /usr/src/app/images
 
