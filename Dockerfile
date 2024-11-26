@@ -32,8 +32,8 @@ WORKDIR /usr/src/app
 COPY --chmod=0755 . .
 
 # Instal dependencies
-RUN pip install --no-index --find-links=/usr/src/app/wheels requests
-RUN pip install --no-cache-dir Pillow
+RUN pip install --no-index --no-cache-dir --find-links=/usr/src/app/wheels requests && \
+    pip install --no-cache-dir Pillow
 
 VOLUME /usr/src/app/images
 
