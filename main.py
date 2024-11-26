@@ -25,7 +25,7 @@ with open("da_config.json", "r") as json_file:
     DEBUG_NO_POST = eval(da_config_dict.get("debug_no_post", "True"))
 
 # Set up the token manager and poster
-token_manager = DATokenManager(da_config_dict, debug=True)
+token_manager = DATokenManager(da_config_dict, debug=DEBUG)
 TOKEN = token_manager.token     # keep this up to date during testing
 poster = Poster()
 
