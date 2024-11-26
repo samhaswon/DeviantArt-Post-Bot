@@ -1,4 +1,12 @@
-FROM python:3-alpine AS build-stage
+FROM python:3-alpine AS build-base
+
+ENV PYTHONUNBUFFERED=TRUE
+
+RUN apk add --no-cache --update \
+    zlib \
+    libjpeg-turbo
+
+FROM build-base AS build-stage
 
 RUN mkdir /svc
 WORKDIR /svc
@@ -19,9 +27,7 @@ RUN echo "***** Getting required packages *****" && \
 RUN echo "***** Building dependencies *****" && \
     pip wheel -r /svc/requirements.txt --wheel-dir=/svc/wheels
 
-FROM python:3-alpine AS application
-
-ENV PYTHONUNBUFFERED=TRUE
+FROM build-base AS application
 
 # Get build-stage files
 COPY --link --from=build-stage /svc /usr/src/app
