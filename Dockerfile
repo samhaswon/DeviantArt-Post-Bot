@@ -3,8 +3,21 @@ FROM python:3-alpine AS build-base
 ENV PYTHONUNBUFFERED=TRUE
 
 RUN apk add --no-cache --update \
-    zlib \
-    libjpeg-turbo
+    libjpeg-turbo \
+    tiff-dev  \
+    jpeg-dev  \
+    openjpeg-dev  \
+    zlib-dev  \
+    freetype-dev  \
+    lcms2-dev \
+    libwebp-dev  \
+    tcl-dev  \
+    tk-dev  \
+    harfbuzz-dev  \
+    fribidi-dev  \
+    libimagequant-dev \
+    libxcb-dev  \
+    libpng-dev
 
 FROM build-base AS build-stage
 
