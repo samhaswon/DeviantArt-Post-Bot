@@ -9,6 +9,8 @@ It is likely that this will not work for you as this is a niche implementation f
 If you want a certain feature or a current feature to work differently, fork it and make your own custom version. 
 This is **not** intended to be generalized or perfect for your use case. 
 There are already other projects out there that are more general, but they do not fit my use case.
+If you can't tell by the fact that I'm using JSON for the configuration management,
+this is not intended to be user-friendly. 
 
 ## Setup
 
