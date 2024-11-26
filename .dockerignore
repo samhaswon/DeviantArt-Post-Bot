@@ -3,7 +3,7 @@ da_config*.json
 .*venv/
 .venv/
 venv/
-__pycache__/
+**__pycache__/*
 test_files/
 .venv/
 .git*
