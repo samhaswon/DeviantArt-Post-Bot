@@ -55,4 +55,4 @@ RUN pip install --no-index --no-cache-dir --find-links=/usr/src/app/wheels reque
 
 VOLUME /usr/src/app/images
 
-CMD ["python", "main.py"]
+CMD ["python", "-OO", "main.py"]
