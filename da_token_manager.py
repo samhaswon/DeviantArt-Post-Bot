@@ -104,7 +104,14 @@ class DATokenManager:
         :return: None
         """
         # Make the API call to get a new token
-        self.__token = self._get_new_token_from_api()
+        try:
+            self.__token = self._get_new_token_from_api()
+        # If the connection fails to be established, try again. This could exceed recursion depth.
+        except requests.exceptions.ConnectionError or requests.exceptions.HTTPError:
+            # Wait a few seconds for DNS to be happier
+            time.sleep(5)
+            self.refresh_token()
+            return
         self.token_expiry_time = time.time() + 3600
         if self.__debug:
             print(f"Token refreshed: {self.__token=}")
