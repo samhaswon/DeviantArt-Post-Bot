@@ -85,7 +85,7 @@ class Poster:
                     debug,
                     back_off_time ** 2
                 )
-            elif upload_status in {500, 503}:
+            elif upload_status >= 500:
                 print(f"Deviantart had a server error {upload_status}. Waiting and trying again", end="")
                 for i in range(3):
                     time.sleep(20)
