@@ -1,8 +1,8 @@
 import re
 import time
+from typing import List
 
 import requests
-from typing import List
 
 
 class Poster:
@@ -60,18 +60,51 @@ class Poster:
             else:
                 raise RuntimeError(f"Invalid file type for file at {file_path}")
 
-        result = requests.post(self.STASH_UPLOAD_URL, data=data, files=files)
-        upload_status = result.status_code
-        if debug:
-            print(f"Raw {result.text=}")
+        upload_failed = False
+        json_parsing_failed = False
         try:
+            result = requests.post(self.STASH_UPLOAD_URL, data=data, files=files)
+            upload_status = result.status_code
+            if debug:
+                print(f"Raw {result.text=}")
             result = result.json()
         except requests.exceptions.JSONDecodeError or requests.exceptions.InvalidJSONError:
             json_parsing_failed = True
-        else:
-            json_parsing_failed = False
-        if json_parsing_failed or result.get("status", "failure") != "success":
-            if upload_status == 429:
+        except requests.exceptions.ConnectionError:
+            upload_failed = True
+
+        if json_parsing_failed or upload_failed or result.get("status", "failure") != "success":
+            if json_parsing_failed:
+                print(f"JSON parse error encountered. Backing off for {back_off_time} seconds.")
+                time.sleep(back_off_time)
+                self.upload_and_submit(
+                    file_path,
+                    token,
+                    title,
+                    artist_comments,
+                    tags,
+                    folders,
+                    is_mature,
+                    debug,
+                    back_off_time ** 2
+                )
+                return
+            elif upload_failed:
+                print(f"Upload error encountered. Backing off for {back_off_time} seconds.")
+                time.sleep(back_off_time)
+                self.upload_and_submit(
+                    file_path,
+                    token,
+                    title,
+                    artist_comments,
+                    tags,
+                    folders,
+                    is_mature,
+                    debug,
+                    back_off_time
+                )
+                return
+            elif upload_status == 429:
                 print(f"Rate limit encountered. Backing off for {back_off_time} seconds.")
                 time.sleep(back_off_time)
                 self.upload_and_submit(
@@ -85,6 +118,7 @@ class Poster:
                     debug,
                     back_off_time ** 2
                 )
+                return
             elif upload_status >= 500:
                 print(f"Deviantart had a server error {upload_status}. Waiting and trying again", end="")
                 for i in range(3):
@@ -102,6 +136,7 @@ class Poster:
                     debug,
                     back_off_time ** 2
                 )
+                return
             else:
                 raise RuntimeError(f"Unable to upload image!\n"
                                    f"{result=}")
@@ -132,10 +167,28 @@ class Poster:
             params["is_mature"] = True
             params["mature_level"] = "strict"
             params["mature_classification"] = ["nudity", "sexual"]
-
-        post_result = requests.post(self.STASH_PUBLISH_URL, params=params)
-        if post_result.status_code > 399:
-            if post_result.status_code == 400:
+        publish_failed = False
+        try:
+            post_result = requests.post(self.STASH_PUBLISH_URL, params=params)
+        except requests.exceptions.ConnectionError:
+            publish_failed = True
+        if publish_failed or post_result.status_code > 399:
+            if publish_failed:
+                print("Publish request failed. Trying again.")
+                time.sleep(back_off_time)
+                self.upload_and_submit(
+                    file_path,
+                    token,
+                    title,
+                    artist_comments,
+                    tags,
+                    folders,
+                    is_mature,
+                    debug,
+                    back_off_time
+                )
+                return
+            elif post_result.status_code == 400:
                 print("Deviantart broke most likely. Reattempting upload. You may also want to check your stash.")
                 print(f"Response:\n{post_result.text=}")
                 time.sleep(back_off_time)
@@ -150,6 +203,7 @@ class Poster:
                     debug,
                     back_off_time ** 2
                 )
+                return
             elif upload_status == 429:
                 retry_count = 1
                 while post_result.status_code > 399 and retry_count < 20:
@@ -199,6 +253,7 @@ class Poster:
                 debug,
                 back_off_time ** 2
             )
+            return
         else:
             print(f"Successfully posted deviation {post_result['deviationid']} at {post_result['url']}")
 
