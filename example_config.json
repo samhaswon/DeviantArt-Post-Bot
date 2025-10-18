@@ -17,7 +17,8 @@
                 "food",
                 "kitchen",
                 "aigeneratedart"
-            ]
+            ],
+            "is_ai": true
         },
         "mermaids": {
             "type": "rotation",
@@ -40,7 +41,6 @@
                 ],
                 [
                     "merman",
-                    "aigeneratedart"
                 ]
             ]
         }

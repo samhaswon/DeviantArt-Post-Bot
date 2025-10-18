@@ -93,6 +93,32 @@ For rotation postings, your config should look something like this:
 }
 ```
 
+You can also add the flag for AI content (default is false):
+```json 
+{
+  "rotation_images": {
+    "type": "rotation",
+    "last_posted": 0,
+    "directories": [
+      "path/to/first/folder",
+      "path/to/second/folder",
+      "and/so/on"
+    ],
+    "images_per_day": 1,
+    "time": "01:01",
+    "galleries": [
+        "folderid1",
+        "folderid2"
+    ],
+    "tags": [
+        "tag1",
+        "tag2"
+    ],
+    "is_ai": true
+  }
+}
+```
+
 Before running the application, you will **need** to rename the file to `da_config.json`. 
 Otherwise, the application will not run. 
 

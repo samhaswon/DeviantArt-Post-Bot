@@ -4,7 +4,7 @@ import os
 import re
 import sched
 import time
-from typing import List
+from typing import List, Union
 
 from da_token_manager import DATokenManager
 from da_poster import Poster
@@ -42,13 +42,14 @@ def update_token() -> None:
     TOKEN = token_manager.token
 
 
-def make_post(directory: str, num_images: int, galleries: List[str], tags: List[str]) -> None:
+def make_post(directory: str, num_images: int, galleries: List[str], tags: List[str], is_ai: Union[str, bool]) -> None:
     """
     Make a post to DeviantArt using the relevant parameters.
     :param directory: The directory to post from.
     :param num_images: The number of images to post.
     :param galleries: The galleries to post to.
     :param tags: The tags to use for the image(s).
+    :param is_ai: Whether the image is an AI or not.
     :return: None.
     """
     if not os.path.isdir(directory):
@@ -92,6 +93,7 @@ def make_post(directory: str, num_images: int, galleries: List[str], tags: List[
                                      comment,
                                      tags,
                                      galleries,
+                                     is_ai_generated=is_ai,
                                      debug=DEBUG)
             os.remove(file.path)
 
@@ -132,6 +134,7 @@ def post_scheduler() -> None:
         images_per_day: int = da_config_dict["post_config"][post_type]["images_per_day"]
         time_of_day: str = da_config_dict["post_config"][post_type]["time"]
         galleries: List[str] = da_config_dict["post_config"][post_type]["galleries"]
+        is_ai: Union[str, bool] = da_config_dict["post_config"][post_type]["is_ai"]
 
         # Figure out when to schedule the posting
         hour, minute = tuple(time_of_day.split(":"))
@@ -143,7 +146,7 @@ def post_scheduler() -> None:
         if target_time <= now:
             target_time += timedelta(days=1)
         delay = (target_time - now).total_seconds()
-        scheduler.enter(delay, 1, make_post, argument=(directory, images_per_day, galleries, tags))
+        scheduler.enter(delay, 1, make_post, argument=(directory, images_per_day, galleries, tags, is_ai))
         print(f"Scheduled posting of {post_type} for {target_time}")
 
 

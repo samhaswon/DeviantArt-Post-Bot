@@ -19,6 +19,7 @@ class Poster:
                           is_mature: bool = True,
                           debug: bool = False,
                           back_off_time: int = 2,
+                          is_ai_generated: bool = False,
                           ) -> None:
         """
         Upload and submit an image to Deviantart.
@@ -31,6 +32,7 @@ class Poster:
         :param is_mature: If the deviation should be tagged as mature.
         :param debug: Print debugging information.
         :param back_off_time: Time to wait for the rate limit to expire.
+        :param is_ai_generated: If the deviation should be tagged as AI.
         :return: None
         """
         # Truncate title
@@ -155,6 +157,8 @@ class Poster:
             "allow_comments": True,
             "display_resolution": 0,
             "sharing": "allow",
+            "is_ai_generated": is_ai_generated,
+            "noai": not is_ai_generated,  # If AI, don't allow in datasets
             "license_options": {
                 "creative_commons": False,
                 "commercial": False,
