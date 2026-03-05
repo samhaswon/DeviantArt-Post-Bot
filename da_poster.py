@@ -35,6 +35,11 @@ class Poster:
         :param is_ai_generated: If the deviation should be tagged as AI.
         :return: None
         """
+        if back_off_time >= 1024:
+            raise RuntimeError(
+                f"Backoff time limit exceeded ({back_off_time} seconds), so ending here."
+                f"Please check previous logs for more details for the reason."
+            )
         # Truncate title
         title = title[:50]
         # Upload image
@@ -64,6 +69,8 @@ class Poster:
 
         upload_failed = False
         json_parsing_failed = False
+        result = None
+        upload_status = 0
         try:
             result = requests.post(self.STASH_UPLOAD_URL, data=data, files=files)
             upload_status = result.status_code
@@ -137,6 +144,31 @@ class Poster:
                     is_mature,
                     debug,
                     back_off_time ** 2
+                )
+                return
+            elif result.get("status", "failure") == "error" and result.get("error", "server_error"):
+                error_description = result.get("error_description", "none")
+                if error_description != "none":
+                    print(
+                        f"Deviantart had a server error ({error_description}). Waiting and trying again. "
+                        f"Hint: try uploading this image in the web UI, as this is a vague error from DA."
+                    )
+                else:
+                    print(
+                        f"Deviantart had a server error {upload_status}. Waiting and trying again. "
+                        f"Hint: try uploading this image in the web UI, as this is a vague error from DA."
+                    )
+                time.sleep(back_off_time)
+                self.upload_and_submit(
+                    file_path,
+                    token,
+                    title,
+                    artist_comments,
+                    tags,
+                    folders,
+                    is_mature,
+                    debug,
+                    back_off_time + 2  # Don't do exponential backoff, just wait a little longer.
                 )
                 return
             else:
