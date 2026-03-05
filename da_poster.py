@@ -1,4 +1,5 @@
 import re
+import socket
 import time
 from typing import List
 
@@ -8,6 +9,43 @@ import requests
 class Poster:
     STASH_UPLOAD_URL = "https://www.deviantart.com/api/v1/oauth2/stash/submit"
     STASH_PUBLISH_URL = "https://www.deviantart.com/api/v1/oauth2/stash/publish"
+
+    @staticmethod
+    def _is_dns_error(exception: Exception) -> bool:
+        """
+        Detect DNS / name-resolution errors wrapped by requests exceptions.
+        """
+        dns_error_markers = (
+            "nameresolutionerror",
+            "temporary failure in name resolution",
+            "name or service not known",
+            "nodename nor servname provided",
+            "getaddrinfo failed",
+        )
+        seen = set()
+        stack = [exception]
+        while stack:
+            current = stack.pop()
+            if current is None:
+                continue
+            current_id = id(current)
+            if current_id in seen:
+                continue
+            seen.add(current_id)
+
+            if isinstance(current, socket.gaierror):
+                return True
+            if any(marker in str(current).lower() for marker in dns_error_markers):
+                return True
+
+            if getattr(current, "__cause__", None):
+                stack.append(current.__cause__)
+            if getattr(current, "__context__", None):
+                stack.append(current.__context__)
+            for arg in getattr(current, "args", ()):
+                if isinstance(arg, BaseException):
+                    stack.append(arg)
+        return False
 
     def upload_and_submit(self,
                           file_path: str,
@@ -68,6 +106,7 @@ class Poster:
                 raise RuntimeError(f"Invalid file type for file at {file_path}")
 
         upload_failed = False
+        dns_upload_failed = False
         json_parsing_failed = False
         result = None
         upload_status = 0
@@ -77,10 +116,11 @@ class Poster:
             if debug:
                 print(f"Raw {result.text=}")
             result = result.json()
-        except requests.exceptions.JSONDecodeError or requests.exceptions.InvalidJSONError:
+        except (requests.exceptions.JSONDecodeError, requests.exceptions.InvalidJSONError):
             json_parsing_failed = True
-        except requests.exceptions.ConnectionError:
+        except requests.exceptions.ConnectionError as exc:
             upload_failed = True
+            dns_upload_failed = self._is_dns_error(exc)
 
         if json_parsing_failed or upload_failed or result.get("status", "failure") != "success":
             if json_parsing_failed:
@@ -99,8 +139,12 @@ class Poster:
                 )
                 return
             elif upload_failed:
-                print(f"Upload error encountered. Backing off for {back_off_time} seconds.")
-                time.sleep(back_off_time)
+                if dns_upload_failed:
+                    print(f"DNS resolution error encountered during upload. Waiting for 1 second.")
+                    time.sleep(1)
+                else:
+                    print(f"Upload error encountered. Backing off for {back_off_time} seconds.")
+                    time.sleep(back_off_time)
                 self.upload_and_submit(
                     file_path,
                     token,
@@ -204,14 +248,26 @@ class Poster:
             params["mature_level"] = "strict"
             params["mature_classification"] = ["nudity", "sexual"]
         publish_failed = False
+        dns_publish_failed = False
         try:
             post_result = requests.post(self.STASH_PUBLISH_URL, params=params)
-        except requests.exceptions.ConnectionError:
+        except requests.exceptions.ConnectionError as exc:
             publish_failed = True
+            dns_publish_failed = self._is_dns_error(exc)
         if publish_failed or post_result.status_code > 399:
             if publish_failed:
-                print("Publish request failed. Trying again.")
-                time.sleep(back_off_time)
+                if dns_publish_failed:
+                    print(
+                        f"DNS resolution error during publish request. Reattempting upload. "
+                        f"You may also want to check your stash."
+                    )
+                    time.sleep(1)
+                else:
+                    print(
+                        f"Publish request failed. Reattempting upload after {back_off_time} seconds. "
+                        f"You may also want to check your stash."
+                    )
+                    time.sleep(back_off_time)
                 self.upload_and_submit(
                     file_path,
                     token,
@@ -225,7 +281,10 @@ class Poster:
                 )
                 return
             elif post_result.status_code == 400:
-                print("Deviantart broke most likely. Reattempting upload. You may also want to check your stash.")
+                print(
+                    f"Deviantart broke most likely. Reattempting upload after {back_off_time} seconds. "
+                    f"You may also want to check your stash."
+                )
                 print(f"Response:\n{post_result.text=}")
                 time.sleep(back_off_time)
                 self.upload_and_submit(
@@ -274,7 +333,7 @@ class Poster:
             print(f"{post_result.text=}")
         try:
             post_result = post_result.json()
-        except requests.exceptions.JSONDecodeError or requests.exceptions.InvalidJSONError:
+        except (requests.exceptions.JSONDecodeError, requests.exceptions.InvalidJSONError):
             print("Failed to post stashed deviation. "
                   "Trying the whole thing again. "
                   "You may also want to check your stash.")
@@ -292,4 +351,3 @@ class Poster:
             return
         else:
             print(f"Successfully posted deviation {post_result['deviationid']} at {post_result['url']}")
-
