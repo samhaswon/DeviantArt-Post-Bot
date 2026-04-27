@@ -42,6 +42,23 @@ def update_token() -> None:
     TOKEN = token_manager.token
 
 
+def resolve_tags(post_config: dict, post_index: int | None = None) -> List[str]:
+    """
+    Normalize tag configuration into a list of tag strings.
+    Daily posts use a flat list. Rotation posts may use either a flat list shared
+    across all directories or a list-of-lists keyed by rotation index.
+    :param post_config: A single post_config entry from the JSON file.
+    :param post_index: Active rotation index when relevant.
+    :return: A list of tag strings.
+    """
+    tags = post_config["tags"]
+    if isinstance(tags, list) and tags and isinstance(tags[0], list):
+        if post_index is None:
+            raise ValueError("Rotation tag groups require a post index.")
+        return tags[post_index]
+    return tags
+
+
 def make_post(directory: str, num_images: int, galleries: List[str], tags: List[str], is_ai: Union[str, bool]) -> None:
     """
     Make a post to DeviantArt using the relevant parameters.
@@ -111,36 +128,36 @@ def post_scheduler() -> None:
     """
     global da_config_dict, scheduler
     for post_type in da_config_dict["post_config"].keys():
-        posting_type = da_config_dict["post_config"][post_type]["type"]
+        post_config = da_config_dict["post_config"][post_type]
+        posting_type = post_config["type"]
         if posting_type.lower() == "rotation":
             # Take advantage of the fact that the token manager has a shallow copy of the dictionary
-            da_config_dict["post_config"][post_type]["last_posted"] += 1
+            post_config["last_posted"] += 1
             # token_manager.extra_config["post_config"][post_type]["last_posted"] += 1
-            if (da_config_dict["post_config"][post_type]["last_posted"] >=
-                    len(da_config_dict["post_config"][post_type]["directories"])):
-                da_config_dict["post_config"][post_type]["last_posted"] = 0
+            if post_config["last_posted"] >= len(post_config["directories"]):
+                post_config["last_posted"] = 0
                 # token_manager.extra_config["post_config"][post_type]["last_posted"] = 0
-            token_manager.increment_rotation_config(post_type, da_config_dict["post_config"][post_type]["last_posted"])
+            token_manager.increment_rotation_config(post_type, post_config["last_posted"])
 
             # Figure out what we're posting
-            post_index = da_config_dict["post_config"][post_type]["last_posted"]
-            directory = da_config_dict["post_config"][post_type]["directories"][post_index]
-            tags = da_config_dict["post_config"][post_type]["tags"][post_index]
+            post_index = post_config["last_posted"]
+            directory = post_config["directories"][post_index]
+            tags = resolve_tags(post_config, post_index)
 
         elif posting_type.lower() == "daily":
             # Figure out what we're posting
-            directory = da_config_dict["post_config"][post_type]["directory"]
-            tags = da_config_dict["post_config"][post_type]["tags"]
+            directory = post_config["directory"]
+            tags = resolve_tags(post_config)
 
         else:
             print(f"Invalid configuration for posting type: {posting_type}")
             exit(1)
 
         # Grab common config arguments
-        images_per_day: int = da_config_dict["post_config"][post_type]["images_per_day"]
-        time_of_day: str = da_config_dict["post_config"][post_type]["time"]
-        galleries: List[str] = da_config_dict["post_config"][post_type]["galleries"]
-        is_ai: Union[str, bool] = da_config_dict["post_config"][post_type]["is_ai"]
+        images_per_day: int = post_config["images_per_day"]
+        time_of_day: str = post_config["time"]
+        galleries: List[str] = post_config["galleries"]
+        is_ai: Union[str, bool] = post_config["is_ai"]
 
         # Figure out when to schedule the posting
         hour, minute = tuple(time_of_day.split(":"))
