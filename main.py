@@ -7,7 +7,7 @@ import time
 from typing import List, Union
 
 from da_token_manager import DATokenManager
-from da_poster import Poster
+from da_poster import Poster, OAuthError
 
 
 # Global stuff
@@ -87,14 +87,20 @@ def make_post(directory: str, num_images: int, galleries: List[str], tags: List[
 
         # Post the image
         if not DEBUG_NO_POST:
-            poster.upload_and_submit(file.path,
-                                     TOKEN,
-                                     post_name,
-                                     comment,
-                                     tags,
-                                     galleries,
-                                     is_ai_generated=is_ai,
-                                     debug=DEBUG)
+            submitted: bool = False
+            while not submitted:
+                try:
+                    poster.upload_and_submit(file.path,
+                                             TOKEN,
+                                             post_name,
+                                             comment,
+                                             tags,
+                                             galleries,
+                                             is_ai_generated=is_ai,
+                                             debug=DEBUG)
+                    submitted = True
+                except OAuthError:
+                    update_token()
             os.remove(file.path)
 
 

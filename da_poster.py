@@ -6,6 +6,10 @@ from typing import List
 import requests
 
 
+class OAuthError(Exception):
+    pass
+
+
 class Poster:
     STASH_UPLOAD_URL = "https://www.deviantart.com/api/v1/oauth2/stash/submit"
     STASH_PUBLISH_URL = "https://www.deviantart.com/api/v1/oauth2/stash/publish"
@@ -57,7 +61,7 @@ class Poster:
                           is_mature: bool = True,
                           debug: bool = False,
                           back_off_time: int = 2,
-                          is_ai_generated: bool = False,
+                          is_ai_generated: bool | str = False,
                           ) -> None:
         """
         Upload and submit an image to Deviantart.
@@ -192,6 +196,8 @@ class Poster:
                 return
             elif result.get("status", "failure") == "error" and result.get("error", "server_error"):
                 error_description = result.get("error_description", "none")
+                if "Expired oAuth2 user token" in error_description:
+                    raise OAuthError(error_description)
                 if error_description != "none":
                     print(
                         f"Deviantart had a server error ({error_description}). Waiting and trying again. "
