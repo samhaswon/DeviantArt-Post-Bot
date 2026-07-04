@@ -59,7 +59,12 @@ def resolve_tags(post_config: dict, post_index: int | None = None) -> List[str]:
     return tags
 
 
-def make_post(directory: str, num_images: int, galleries: List[str], tags: List[str], is_ai: Union[str, bool]) -> None:
+def make_post(directory: str,
+              num_images: int,
+              galleries: List[str],
+              tags: List[str],
+              is_ai: Union[str, bool],
+              artist_comments_prepend: str = "") -> None:
     """
     Make a post to DeviantArt using the relevant parameters.
     :param directory: The directory to post from.
@@ -67,6 +72,7 @@ def make_post(directory: str, num_images: int, galleries: List[str], tags: List[
     :param galleries: The galleries to post to.
     :param tags: The tags to use for the image(s).
     :param is_ai: Whether the image is an AI or not.
+    :param artist_comments_prepend: Text to prepend to the image's artist comments.
     :return: None.
     """
     if not os.path.isdir(directory):
@@ -97,6 +103,7 @@ def make_post(directory: str, num_images: int, galleries: List[str], tags: List[
                 comment = comment_file.read()
         else:
             comment = ""
+        comment = artist_comments_prepend + comment
         post_name = re.sub(r"_+|\s\s+", " ", base_name)
         if DEBUG:
             print(f"Posting {post_name} from {file.path}\n"
@@ -158,6 +165,7 @@ def post_scheduler() -> None:
         time_of_day: str = post_config["time"]
         galleries: List[str] = post_config["galleries"]
         is_ai: Union[str, bool] = post_config["is_ai"]
+        artist_comments_prepend: str = post_config.get("artist_comments_prepend", "")
 
         # Figure out when to schedule the posting
         hour, minute = tuple(time_of_day.split(":"))
@@ -169,7 +177,12 @@ def post_scheduler() -> None:
         if target_time <= now:
             target_time += timedelta(days=1)
         delay = (target_time - now).total_seconds()
-        scheduler.enter(delay, 1, make_post, argument=(directory, images_per_day, galleries, tags, is_ai))
+        scheduler.enter(
+            delay,
+            1,
+            make_post,
+            argument=(directory, images_per_day, galleries, tags, is_ai, artist_comments_prepend)
+        )
         print(f"Scheduled posting of {post_type} for {target_time}")
 
 

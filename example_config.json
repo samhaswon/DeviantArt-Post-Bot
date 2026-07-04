@@ -18,6 +18,7 @@
                 "kitchen",
                 "aigeneratedart"
             ],
+            "artist_comments_prepend": "For cake recipies and more, check out my blog at example.com!.\n\n",
             "is_ai": true
         },
         "mermaids": {
@@ -40,9 +41,10 @@
                     "aigeneratedart"
                 ],
                 [
-                    "merman",
+                    "merman"
                 ]
-            ]
+            ],
+            "is_ai": true
         }
     }
 }
