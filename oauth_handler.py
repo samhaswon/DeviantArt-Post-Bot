@@ -6,6 +6,8 @@ from typing import Tuple
 # Global variables to store the code and state
 code = None
 state = None
+error = None
+error_description = None
 
 
 class OAuthHandler(BaseHTTPRequestHandler):
@@ -17,18 +19,23 @@ class OAuthHandler(BaseHTTPRequestHandler):
         Gets the token and nonce (state) from the DeviantArt OATH process.
         :return: The code and nonce (state).
         """
-        global code, state
+        global code, state, error, error_description
         # Parse the URL to get the query parameters
         parsed_path = urlparse.urlparse(self.path)
         query_params = urlparse.parse_qs(parsed_path.query)
 
-        # Extract 'code' and 'state' parameters
+        # Extract OAuth result parameters
         code = query_params.get('code', [None])[0]
         state = query_params.get('state', [None])[0]
+        error = query_params.get('error', [None])[0]
+        error_description = query_params.get('error_description', [None])[0]
 
         # Log the received code and state
         print(f"Received code: {code}")
         print(f"Received state: {state}")
+        if error is not None:
+            print(f"Received error: {error}")
+            print(f"Received error description: {error_description}")
 
         # Send a response to the client
         self.send_response(200)
@@ -64,6 +71,12 @@ def run(server_class=StoppableHTTPServer, handler_class=OAuthHandler, port=6414)
     :param port: The port to listen on.
     :return: None.
     """
+    global code, state, error, error_description
+    code = None
+    state = None
+    error = None
+    error_description = None
+
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
     print(f"Starting HTTP server on port {port}")

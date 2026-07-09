@@ -1,10 +1,12 @@
+import base64
 import binascii
+import hashlib
 import json
 import requests
-import random
-import string
+import secrets
 import time
 from typing import Union
+import urllib.parse as urlparse
 import webbrowser
 
 import oauth_handler
@@ -47,6 +49,8 @@ class DATokenManager:
         self.__oauth_token: Union[str, None] = config.get("oauth_token", None)
         # Refresh token for OAuth stuff
         self.__refresh_token: Union[str, None] = config.get("refresh_token", None)
+        # PKCE verifier used while exchanging a freshly authorized code.
+        self.__code_verifier: Union[str, None] = None
         # Config in the config that is not used by the token manager.
         self.__extra_config: dict = {}
 
@@ -127,9 +131,10 @@ class DATokenManager:
             data = {
                 "grant_type": "authorization_code",
                 "redirect_uri": "https://mikf.github.io/gallery-dl/oauth-redirect.html",
-                "code": self.__oauth_token
+                "code": self.__oauth_token,
+                "code_verifier": self.__code_verifier
             }
-            auth_result = requests.post(" https://www.deviantart.com/oauth2/token",
+            auth_result = requests.post("https://www.deviantart.com/oauth2/token",
                                         auth=auth_parameters,
                                         data=data)
             if auth_result.status_code > 399:
@@ -150,7 +155,7 @@ class DATokenManager:
                 "grant_type": "refresh_token",
                 "refresh_token": self.__refresh_token
             }
-            auth_result = requests.post(" https://www.deviantart.com/oauth2/token",
+            auth_result = requests.post("https://www.deviantart.com/oauth2/token",
                                         auth=auth_parameters,
                                         data=data)
             if auth_result.status_code > 399:
@@ -173,13 +178,29 @@ class DATokenManager:
         Gets a new OAuth token for use with the API.
         :return: New token.
         """
-        # Make a Nonce
-        nonce = "".join(random.choice(string.ascii_letters) for _ in range(30))
+        # Make a nonce and PKCE challenge.
+        nonce = secrets.token_urlsafe(30)
+        self.__code_verifier = secrets.token_urlsafe(64)
+        code_challenge = base64.urlsafe_b64encode(
+            hashlib.sha256(self.__code_verifier.encode("ascii")).digest()
+        ).decode("ascii").rstrip("=")
+
+        auth_params = {
+            "response_type": "code",
+            "redirect_uri": "https://mikf.github.io/gallery-dl/oauth-redirect.html",
+            "scope": "basic",
+            "state": nonce,
+            "client_id": self.__client_id,
+            "code_challenge": code_challenge,
+            "code_challenge_method": "S256"
+        }
+        referer = "https://www.deviantart.com/oauth2/authorize?" + urlparse.urlencode(auth_params)
         # Open the OAuth link for the user to authorize the application
         webbrowser.open(
-            f"https://www.deviantart.com/join?referer=https%3A%2F%2Fwww.deviantart.com%2Foauth2%2Fauthorize"
-            f"%3Fresponse_type%3Dcode%26redirect_uri%3Dhttps%253A%252F%252Fmikf.github.io%252Fgallery-dl%252Foauth"
-            f"-redirect.html%26scope%3Dbasic%26state%3D{nonce}%26client_id%3D{self.__client_id}&oauth=1",
+            "https://www.deviantart.com/join?" + urlparse.urlencode({
+                "referer": referer,
+                "oauth": "1"
+            }),
             new=2, autoraise=True
         )
 
@@ -194,6 +215,11 @@ class DATokenManager:
         if oauth_handler.state != nonce:
             raise RuntimeError(f"Possible MITM! Nonce and state do NOT match!\n"
                                f"| {nonce=} | {oauth_handler.state=} |")
+        if oauth_handler.error is not None:
+            raise RuntimeError(f"DeviantArt authentication error: {oauth_handler.error}\n"
+                               f"{oauth_handler.error_description}")
+        if oauth_handler.code is None:
+            raise RuntimeError("DeviantArt did not return an authorization code.")
 
         self.__oauth_token = oauth_handler.code
         return oauth_handler.code
