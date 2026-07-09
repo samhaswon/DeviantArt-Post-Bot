@@ -188,7 +188,7 @@ class DATokenManager:
         auth_params = {
             "response_type": "code",
             "redirect_uri": "https://mikf.github.io/gallery-dl/oauth-redirect.html",
-            "scope": "basic",
+            "scope": "basic browse publish stash",
             "state": nonce,
             "client_id": self.__client_id,
             "code_challenge": code_challenge,
