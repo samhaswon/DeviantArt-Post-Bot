@@ -164,7 +164,7 @@ def post_scheduler() -> None:
         images_per_day: int = post_config["images_per_day"]
         time_of_day: str = post_config["time"]
         galleries: List[str] = post_config["galleries"]
-        is_ai: Union[str, bool] = post_config["is_ai"]
+        is_ai: Union[str, bool] = post_config.get("is_ai", False)
         artist_comments_prepend: str = post_config.get("artist_comments_prepend", "")
 
         # Figure out when to schedule the posting
