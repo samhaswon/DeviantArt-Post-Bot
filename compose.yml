@@ -8,3 +8,4 @@ services:
     volumes:
       - ./da_config.json:/usr/src/app/da_config.json
       - ./images:/usr/src/app/images
+      - ./posted:/usr/src/app/posted

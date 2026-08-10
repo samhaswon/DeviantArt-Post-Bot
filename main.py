@@ -3,6 +3,7 @@ import json
 import os
 import re
 import sched
+import shutil
 import time
 from typing import List, Union
 
@@ -14,6 +15,8 @@ from da_poster import Poster, OAuthError
 TOKEN: str = ""
 DEBUG: bool = True
 DEBUG_NO_POST: bool = True
+MOVE_NOT_DELETE: bool = False
+POSTED_DIRECTORY: str = "/usr/src/app/posted"
 
 # Load config
 with open("da_config.json", "r") as json_file:
@@ -23,6 +26,9 @@ with open("da_config.json", "r") as json_file:
             da_config_dict[key] = str(da_config_dict[key])
     DEBUG = eval(da_config_dict.get("debug", "True"))
     DEBUG_NO_POST = eval(da_config_dict.get("debug_no_post", "True"))
+    MOVE_NOT_DELETE = da_config_dict.get("move_not_delete", False)
+    if isinstance(MOVE_NOT_DELETE, str):
+        MOVE_NOT_DELETE = MOVE_NOT_DELETE.lower() == "true"
 
 # Set up the token manager and poster
 token_manager = DATokenManager(da_config_dict, debug=DEBUG)
@@ -125,7 +131,11 @@ def make_post(directory: str,
                     submitted = True
                 except OAuthError:
                     update_token()
-            os.remove(file.path)
+            if MOVE_NOT_DELETE:
+                os.makedirs(POSTED_DIRECTORY, exist_ok=True)
+                shutil.move(file.path, POSTED_DIRECTORY)
+            else:
+                os.remove(file.path)
 
 
 def post_scheduler() -> None:
@@ -204,7 +214,7 @@ def run_scheduler() -> None:
 
 if __name__ == '__main__':
     # Print config information
-    print(f"{DEBUG=}\n{DEBUG_NO_POST=}")
+    print(f"{DEBUG=}\n{DEBUG_NO_POST=}\n{MOVE_NOT_DELETE=}")
     print("Config\n", "-" * 20, "\n")
     for post_type in da_config_dict["post_config"].keys():
         print(json.dumps(da_config_dict["post_config"][post_type], indent=4))

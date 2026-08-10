@@ -3,6 +3,7 @@
     "client_secret": "60a0defde65e2eec9a094a3d738843ea",
     "debug": "False",
     "debug_no_post": "False",
+    "move_not_delete": false,
     "post_config": {
         "cake": {
             "type": "daily",

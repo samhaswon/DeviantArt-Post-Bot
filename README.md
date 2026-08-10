@@ -30,6 +30,9 @@ First, follow the instructions in [info.md](./info.md)
 An example configuration is provided in [example_config.json](./example_config.json). 
 This should give you a general idea of how the file is laid out. 
 
+Set the optional global `move_not_delete` field to `true` to move successfully posted
+images to `/usr/src/app/posted` instead of deleting them. It defaults to `false`.
+
 Within `post_config` is where your configuration of different post types will go. 
 The names of each must be unique and include the following fields:
 
@@ -178,5 +181,5 @@ services:
     volumes:
       - ./da_config.json:/usr/src/app/da_config.json
       - ./images:/usr/src/app/images
+      - ./posted:/usr/src/app/posted
 ```
-

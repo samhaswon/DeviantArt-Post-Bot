@@ -10,6 +10,6 @@ COPY --chmod=0755 . .
 # Install dependencies
 RUN pip install --no-cache-dir requests
 
-VOLUME /usr/src/app/images
+VOLUME ["/usr/src/app/images", "/usr/src/app/posted"]
 
 CMD ["python", "-OO", "main.py"]
