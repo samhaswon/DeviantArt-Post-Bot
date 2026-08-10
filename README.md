@@ -15,7 +15,8 @@ this is not intended to be user-friendly.
 ## Application permissions
 
 This application uses "basic" API scope to perform all of its functionality.
-There isn't good documentation I can find to just link to, but these permissions are basically for browsing, stash, and publishing
+There isn't good documentation I can find to just link to, but these permissions
+are basically for browsing, stash, and publishing
 
 ## Setup
 
@@ -23,12 +24,14 @@ To start the setup, clone the repo to your machine.
 
 ### Setting Up The Config
 
-If you want to set this up as your own application in DeviantArt (in case mine gets taken down), you should first follow the instructions in [info.md](./info.md)
+You should set this up as your own application in DeviantArt (mine got taken down unrelated to this). 
+First, follow the instructions in [info.md](./info.md)
 
 An example configuration is provided in [example_config.json](./example_config.json). 
 This should give you a general idea of how the file is laid out. 
 
-Within `post_config` is where your configuration of different post types will go. The names of each must be unique and include the following fields:
+Within `post_config` is where your configuration of different post types will go. 
+The names of each must be unique and include the following fields:
 
 ```json 
 {
