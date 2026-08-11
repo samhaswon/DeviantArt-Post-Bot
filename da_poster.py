@@ -15,6 +15,27 @@ class Poster:
     STASH_PUBLISH_URL = "https://www.deviantart.com/api/v1/oauth2/stash/publish"
 
     @staticmethod
+    def _post_with_auth_fallback(url: str, token: str, legacy_location: str, **kwargs):
+        """POST with OAuth bearer auth, retrying 401s with DA's legacy token placement."""
+        response = requests.post(
+            url,
+            headers={"Authorization": f"Bearer {token}"},
+            **kwargs,
+        )
+        if response.status_code != 401:
+            return response
+
+        legacy_kwargs = dict(kwargs)
+        if legacy_location in legacy_kwargs:
+            legacy_values = dict(legacy_kwargs[legacy_location])
+        else:
+            # Publishing historically placed both its payload and token in the query string.
+            legacy_values = dict(legacy_kwargs.pop("data", {}))
+        legacy_values["access_token"] = token
+        legacy_kwargs[legacy_location] = legacy_values
+        return requests.post(url, **legacy_kwargs)
+
+    @staticmethod
     def _is_dns_error(exception: Exception) -> bool:
         """
         Detect DNS / name-resolution errors wrapped by requests exceptions.
@@ -86,7 +107,6 @@ class Poster:
         title = title[:50]
         # Upload image
         params = {
-            "access_token": token,
             "title": title,
             "artist_comments": artist_comments,
             "is_mature": is_mature,
@@ -115,7 +135,13 @@ class Poster:
         result = None
         upload_status = 0
         try:
-            result = requests.post(self.STASH_UPLOAD_URL, data=data, files=files)
+            result = self._post_with_auth_fallback(
+                self.STASH_UPLOAD_URL,
+                token,
+                "data",
+                data=data,
+                files=files,
+            )
             upload_status = result.status_code
             if debug:
                 print(f"Raw {result.text=}")
@@ -229,7 +255,6 @@ class Poster:
 
         # Post image
         params = {
-            "access_token": token,
             "allow_free_download": True,
             "add_watermark": False,
             # "catpath": "visual_art",
@@ -256,7 +281,12 @@ class Poster:
         publish_failed = False
         dns_publish_failed = False
         try:
-            post_result = requests.post(self.STASH_PUBLISH_URL, params=params)
+            post_result = self._post_with_auth_fallback(
+                self.STASH_PUBLISH_URL,
+                token,
+                "params",
+                data=params,
+            )
         except requests.exceptions.ConnectionError as exc:
             publish_failed = True
             dns_publish_failed = self._is_dns_error(exc)
@@ -310,7 +340,12 @@ class Poster:
                 while post_result.status_code > 399 and retry_count < 20:
                     print(f"Rate limit encountered. Backing off for {back_off_time} seconds.")
                     time.sleep(back_off_time)
-                    post_result = requests.post(self.STASH_PUBLISH_URL, params=params)
+                    post_result = self._post_with_auth_fallback(
+                        self.STASH_PUBLISH_URL,
+                        token,
+                        "params",
+                        data=params,
+                    )
                     back_off_time = back_off_time ** 2
                     if post_result.status_code > 399:
                         print(f"Retry count: {retry_count}")
@@ -324,7 +359,12 @@ class Poster:
                 while post_result.status_code > 399 and retry_count < 20:
                     print(f"Backing off for {back_off_time} seconds")
                     time.sleep(back_off_time)
-                    post_result = requests.post(self.STASH_PUBLISH_URL, params=params)
+                    post_result = self._post_with_auth_fallback(
+                        self.STASH_PUBLISH_URL,
+                        token,
+                        "params",
+                        data=params,
+                    )
                     back_off_time = back_off_time ** 2
                     if post_result.status_code > 399:
                         print(f"Retry count: {retry_count}")
