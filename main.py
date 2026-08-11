@@ -34,6 +34,7 @@ with open("da_config.json", "r") as json_file:
 token_manager = DATokenManager(da_config_dict, debug=DEBUG)
 TOKEN = token_manager.token     # keep this up to date during testing
 poster = Poster()
+poster.validate_token(TOKEN)
 
 # Initialize the scheduler
 scheduler = sched.scheduler(time.time, time.sleep)

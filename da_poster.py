@@ -11,6 +11,7 @@ class OAuthError(Exception):
 
 
 class Poster:
+    PLACEBO_URL = "https://www.deviantart.com/api/v1/oauth2/placebo"
     STASH_UPLOAD_URL = "https://www.deviantart.com/api/v1/oauth2/stash/submit"
     STASH_PUBLISH_URL = "https://www.deviantart.com/api/v1/oauth2/stash/publish"
 
@@ -34,6 +35,35 @@ class Poster:
         legacy_values["access_token"] = token
         legacy_kwargs[legacy_location] = legacy_values
         return requests.post(url, **legacy_kwargs)
+
+    def validate_token(self, token: str) -> None:
+        """Verify an access token with DeviantArt before starting scheduled work."""
+        try:
+            response = self._post_with_auth_fallback(
+                self.PLACEBO_URL,
+                token,
+                "data",
+                data={},
+            )
+        except requests.exceptions.RequestException as exc:
+            raise RuntimeError(
+                "Unable to validate the DeviantArt access token because the placebo request failed."
+            ) from exc
+
+        try:
+            result = response.json()
+        except (requests.exceptions.JSONDecodeError, requests.exceptions.InvalidJSONError) as exc:
+            raise RuntimeError(
+                f"DeviantArt token validation returned an invalid response "
+                f"({response.status_code} {response.reason})."
+            ) from exc
+
+        if response.status_code >= 400 or result.get("status") != "success":
+            error = result.get("error_description", result.get("error", "unknown error"))
+            raise RuntimeError(
+                f"DeviantArt access-token validation failed "
+                f"({response.status_code} {response.reason}): {error}"
+            )
 
     @staticmethod
     def _is_dns_error(exception: Exception) -> bool:
